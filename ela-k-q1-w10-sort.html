@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Big or Little?</title>
+<style>
+  :root{
+    --big-a: #7C5CFF;
+    --big-b: #4A2FD6;
+    --little-a: #FF9ACB;
+    --little-b: #E6579E;
+    --cream: #FFF8EC;
+    --ink: #2B2A28;
+    --card: #FFFFFF;
+    --good: #4CAF50;
+    --bad: #E05252;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; height:100%;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    overflow-x:hidden;
+  }
+  .wrap{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 18px 16px 32px;
+    display:flex;
+    flex-direction:column;
+    min-height:100%;
+  }
+  header{ text-align:center; margin-bottom: 10px; }
+  h1{
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    margin: 4px 0 2px;
+  }
+  h1 .b{color: var(--big-b);}
+  h1 .l{color: var(--little-b);}
+  p.sub{ margin: 0; font-size: 1rem; color: #5a5854; }
+  .scoreboard{
+    display:flex; justify-content:center; gap: 18px;
+    margin: 10px 0 18px; font-size: 1.05rem; font-weight: bold;
+  }
+  .scoreboard span{
+    background: var(--card); border-radius: 999px;
+    padding: 6px 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .stage{ flex:1; display:flex; flex-direction:column; align-items:center; gap:20px; }
+  .item-tray{
+    display:flex; flex-wrap: wrap; justify-content:center;
+    gap: 14px; min-height: 90px; align-items:center;
+  }
+  .item{
+    background: var(--card); border: 3px solid #e8e2d4; border-radius: 18px;
+    width: 92px; height: 92px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-size: 2.1rem;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 3px 0 #e8e2d4; position:relative;
+  }
+  .item .label{ font-size: 0.62rem; font-weight: bold; margin-top: 2px; color: #6b675f; }
+  .item:hover{ transform: translateY(-2px); }
+  .item.selected{
+    border-color: var(--big-b);
+    box-shadow: 0 0 0 4px rgba(74,47,214,0.18), 0 3px 0 var(--big-b);
+    transform: scale(1.06);
+  }
+  .item.correct{ animation: pop 0.4s ease; border-color: var(--good); }
+  .item.wrong{ animation: shake 0.4s ease; border-color: var(--bad); }
+  .item.done{ opacity: 0; transform: scale(0.4); pointer-events:none; }
+  @keyframes pop{
+    0%{transform:scale(1.06);} 50%{transform:scale(1.25);}
+    100%{transform:scale(0.4); opacity:0;}
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);}
+  }
+  .bins{ display:flex; gap: 16px; width: 100%; flex-wrap: wrap; justify-content:center; }
+  .bin{
+    flex: 1; min-width: 220px; max-width: 380px; border-radius: 24px;
+    padding: 18px 14px 22px; text-align:center; cursor:pointer; color: #fff;
+    position:relative; min-height: 150px; display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start; gap:6px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.12); transition: transform 0.12s ease;
+  }
+  .bin:active{ transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,0.12); }
+  .bin.big{ background: linear-gradient(160deg, var(--big-a), var(--big-b)); }
+  .bin.little{ background: linear-gradient(160deg, var(--little-a), var(--little-b)); }
+  .bin h2{ margin: 2px 0 0; font-size: 1.4rem; }
+  .bin .icon{ font-size: 2.2rem; }
+  .bin.glow{ box-shadow: 0 0 0 5px rgba(255,255,255,0.6), 0 6px 0 rgba(0,0,0,0.12); }
+  .bin-items{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top: 8px; min-height: 34px; }
+  .bin-items span{ background: rgba(255,255,255,0.25); border-radius: 10px; font-size: 1.3rem; padding: 4px 6px; }
+  .hint{ text-align:center; font-size: 0.95rem; color: #7a766d; min-height: 1.4em; }
+  .controls{ text-align:center; margin-top: 18px; }
+  button.reset{
+    background: var(--ink); color: #fff; border: none; border-radius: 999px;
+    padding: 10px 22px; font-size: 1rem; cursor: pointer;
+  }
+  .celebrate{
+    text-align:center; font-size: 1.3rem; font-weight:bold;
+    color: var(--big-b); margin-top: 10px; display:none;
+  }
+  :root:not([data-theme="light"]) { --cream: #FFF8EC; --ink: #2B2A28; --card: #FFFFFF; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --cream: #1E1C1A; --ink: #F4F0E8; --card: #2A2825; }
+    .item{ border-color: #3a362f; box-shadow: 0 3px 0 #3a362f; }
+    .item .label{ color: #b8b3a8; }
+    .hint{ color: #b8b3a8; }
+    p.sub{ color: #b8b3a8; }
+  }
+  :root[data-theme="dark"]{ --cream: #1E1C1A; --ink: #F4F0E8; --card: #2A2825; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="b">Big</span> 🐘 or <span class="l">Little</span> 🐜?</h1>
+    <p class="sub">Tap a thing, then tap Big or Little to sort it!</p>
+  </header>
+
+  <div class="scoreboard">
+    <span id="score">✅ Correct: 0</span>
+    <span id="remaining">🧩 Left: 12</span>
+  </div>
+
+  <div class="stage">
+    <div class="item-tray" id="tray"></div>
+
+    <div class="hint" id="hint">Tap one of the items above to pick it up.</div>
+
+    <div class="bins">
+      <div class="bin big" id="binBig" data-size="big">
+        <div class="icon">🐘</div>
+        <h2>Big</h2>
+        <div class="bin-items" id="bigItems"></div>
+      </div>
+      <div class="bin little" id="binLittle" data-size="little">
+        <div class="icon">🐞</div>
+        <h2>Little</h2>
+        <div class="bin-items" id="littleItems"></div>
+      </div>
+    </div>
+
+    <div class="celebrate" id="celebrate">🎉 You sorted them all! Great job! 🎉</div>
+
+    <div class="controls">
+      <button class="reset" id="resetBtn">🔄 Start Over</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  {name:"Elephant", emoji:"🐘", size:"big"},
+  {name:"Mountain", emoji:"⛰️", size:"big"},
+  {name:"Whale", emoji:"🐋", size:"big"},
+  {name:"Truck", emoji:"🚚", size:"big"},
+  {name:"Castle", emoji:"🏰", size:"big"},
+  {name:"Dinosaur", emoji:"🦕", size:"big"},
+  {name:"Ant", emoji:"🐜", size:"little"},
+  {name:"Ladybug", emoji:"🐞", size:"little"},
+  {name:"Button", emoji:"🔘", size:"little"},
+  {name:"Pebble", emoji:"🪨", size:"little"},
+  {name:"Seed", emoji:"🌱", size:"little"},
+  {name:"Mouse", emoji:"🐭", size:"little"},
+];
+
+let selectedId = null;
+let correctCount = 0;
+let remaining = ITEMS.length;
+
+const tray = document.getElementById('tray');
+const hint = document.getElementById('hint');
+const scoreEl = document.getElementById('score');
+const remainingEl = document.getElementById('remaining');
+const bigItemsEl = document.getElementById('bigItems');
+const littleItemsEl = document.getElementById('littleItems');
+const celebrateEl = document.getElementById('celebrate');
+
+function shuffledItems(){
+  const arr = ITEMS.map((it, i) => ({...it, id: i}));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function render(){
+  tray.innerHTML = '';
+  const items = shuffledItems();
+  items.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.dataset.id = it.id;
+    el.dataset.size = it.size;
+    el.innerHTML = `<div>${it.emoji}</div><div class="label">${it.name}</div>`;
+    el.addEventListener('click', () => selectItem(el));
+    tray.appendChild(el);
+  });
+}
+
+function selectItem(el){
+  if (el.classList.contains('done')) return;
+  document.querySelectorAll('.item.selected').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedId = el.dataset.id;
+  hint.textContent = "Now tap Big or Little!";
+}
+
+function handleBin(size, binEl){
+  if (!selectedId) {
+    hint.textContent = "Pick something from the tray first!";
+    return;
+  }
+  const itemEl = tray.querySelector(`.item[data-id="${selectedId}"]`);
+  if (!itemEl || itemEl.classList.contains('done')) return;
+
+  const correct = itemEl.dataset.size === size;
+  binEl.classList.add('glow');
+  setTimeout(() => binEl.classList.remove('glow'), 300);
+
+  if (correct) {
+    itemEl.classList.add('correct');
+    correctCount++;
+    remaining--;
+    const label = itemEl.querySelector('.label').textContent;
+    const emoji = itemEl.querySelector('div').textContent;
+    const badge = document.createElement('span');
+    badge.textContent = emoji;
+    badge.title = label;
+    (size === 'big' ? bigItemsEl : littleItemsEl).appendChild(badge);
+    hint.textContent = `Yes! ${label} is ${size === 'big' ? 'Big' : 'Little'}.`;
+    setTimeout(() => { itemEl.classList.add('done'); }, 380);
+    if (remaining === 0) {
+      setTimeout(() => { celebrateEl.style.display = 'block'; }, 500);
+    }
+  } else {
+    itemEl.classList.remove('selected');
+    itemEl.classList.add('wrong');
+    hint.textContent = "Not quite — try the other size!";
+    setTimeout(() => itemEl.classList.remove('wrong'), 400);
+  }
+
+  scoreEl.textContent = `✅ Correct: ${correctCount}`;
+  remainingEl.textContent = `🧩 Left: ${remaining}`;
+  selectedId = null;
+}
+
+document.getElementById('binBig').addEventListener('click', (e) => handleBin('big', e.currentTarget));
+document.getElementById('binLittle').addEventListener('click', (e) => handleBin('little', e.currentTarget));
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  correctCount = 0;
+  remaining = ITEMS.length;
+  selectedId = null;
+  bigItemsEl.innerHTML = '';
+  littleItemsEl.innerHTML = '';
+  celebrateEl.style.display = 'none';
+  hint.textContent = "Tap one of the items above to pick it up.";
+  scoreEl.textContent = `✅ Correct: 0`;
+  remainingEl.textContent = `🧩 Left: ${remaining}`;
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
