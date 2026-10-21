@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rhyming Word Sort</title>
+<style>
+  :root{
+    --cream:#FFF8EC; --ink:#2B2A28; --card:#FFFFFF;
+    --at-a:#FF9ACB; --at-b:#D9488E;
+    --ig-a:#7CCB5A; --ig-b:#3C8A22;
+    --un-a:#6BB8F0; --un-b:#2B7BC4;
+    --bad:#E05252;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;font-family:'Trebuchet MS','Segoe UI',sans-serif;background:var(--cream);color:var(--ink);overflow-x:hidden;}
+  .wrap{max-width:980px;margin:0 auto;padding:18px 16px 32px;}
+  header{text-align:center;margin-bottom:8px;}
+  h1{font-size:clamp(1.6rem,5vw,2.4rem);margin:4px 0 2px;color:#6A3FC0;}
+  p.sub{margin:0;font-size:1.05rem;color:#5a5854;}
+  .scoreboard{display:flex;justify-content:center;gap:16px;margin:10px 0 16px;font-weight:bold;flex-wrap:wrap;}
+  .scoreboard span{background:var(--card);border-radius:999px;padding:6px 16px;box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .tray{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;min-height:116px;align-items:center;}
+  .item{
+    width:104px;height:104px;background:var(--card);border:3px solid #e8e2d4;border-radius:18px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 0 #e8e2d4;
+    transition:transform .15s,box-shadow .15s,border-color .15s,opacity .3s;
+  }
+  .item .emoji{font-size:2.2rem;}
+  .item .text{font-size:1.35rem;font-weight:bold;letter-spacing:1px;}
+  .item:hover{transform:translateY(-2px);}
+  .item.selected{border-color:#6A3FC0;transform:scale(1.07);box-shadow:0 0 0 4px rgba(106,63,192,.2),0 3px 0 #6A3FC0;}
+  .item.wrong{animation:shake .4s;border-color:var(--bad);}
+  .item.done{opacity:0;transform:scale(.4);pointer-events:none;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .hint{text-align:center;color:#7a766d;min-height:1.5em;margin:12px 0;font-size:1.05rem;}
+  .bins{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
+  .bin{
+    flex:1;min-width:220px;max-width:300px;min-height:200px;border-radius:24px;padding:16px 12px 18px;color:#fff;text-align:center;
+    cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12);display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .12s;
+  }
+  .bin:active{transform:translateY(3px);}
+  .bin.at{background:linear-gradient(160deg,var(--at-a),var(--at-b));}
+  .bin.ig{background:linear-gradient(160deg,var(--ig-a),var(--ig-b));}
+  .bin.un{background:linear-gradient(160deg,var(--un-a),var(--un-b));}
+  .bin .icon{font-size:2.2rem;}
+  .bin h2{margin:0;font-size:1.9rem;letter-spacing:1px;}
+  .bin .def{font-size:.95rem;}
+  .bin.glow{box-shadow:0 0 0 5px rgba(255,255,255,.7),0 6px 0 rgba(0,0,0,.12);}
+  .bin-items{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:8px;}
+  .bin-items span{background:rgba(255,255,255,.28);border-radius:10px;font-size:1.05rem;padding:4px 9px;font-weight:bold;}
+  .celebrate{text-align:center;font-weight:bold;font-size:1.3rem;color:#6A3FC0;margin-top:16px;display:none;}
+  .controls{text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  button.btn{background:var(--ink);color:#fff;border:none;border-radius:999px;padding:10px 22px;font-size:1rem;cursor:pointer;}
+  button.btn.alt{background:#6A3FC0;}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){--cream:#1D1B22;--ink:#F4F0E8;--card:#2A2730;}
+    .item{border-color:#3a3644;box-shadow:0 3px 0 #3a3644;}
+    p.sub,.hint{color:#bdb6c8;}
+    h1,.celebrate{color:#B79CF5;}
+    button.btn{background:#4a4556;}
+  }
+  :root[data-theme="dark"]{--cream:#1D1B22;--ink:#F4F0E8;--card:#2A2730;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🏰 Rhyming Word Sort</h1>
+    <p class="sub">Tap a word, then tap the family it rhymes with!</p>
+  </header>
+  <div class="scoreboard">
+    <span id="score">✅ Correct: 0</span>
+    <span id="remaining">🧩 Left: 12</span>
+  </div>
+  <div class="tray" id="tray"></div>
+  <div class="hint" id="hint">Tap a word to pick it up.</div>
+  <div class="bins">
+    <div class="bin at" data-fam="at">
+      <div class="icon">🐱</div><h2>-at</h2><div class="def">rhymes with cat</div>
+      <div class="bin-items" id="items-at"></div>
+    </div>
+    <div class="bin ig" data-fam="ig">
+      <div class="icon">🐷</div><h2>-ig</h2><div class="def">rhymes with pig</div>
+      <div class="bin-items" id="items-ig"></div>
+    </div>
+    <div class="bin un" data-fam="un">
+      <div class="icon">☀️</div><h2>-un</h2><div class="def">rhymes with sun</div>
+      <div class="bin-items" id="items-un"></div>
+    </div>
+  </div>
+  <div class="celebrate" id="celebrate">🎉 You sorted all the rhyming words! 🎉</div>
+  <div class="controls">
+    <button class="btn alt" id="soundBtn">🔊 Sound: On</button>
+    <button class="btn" id="resetBtn">🔄 Start Over</button>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  {text:"cat", emoji:"🐱", fam:"at"}, {text:"hat", emoji:"🎩", fam:"at"},
+  {text:"bat", emoji:"🦇", fam:"at"}, {text:"rat", emoji:"🐀", fam:"at"},
+  {text:"pig", emoji:"🐷", fam:"ig"}, {text:"wig", emoji:"💇", fam:"ig"},
+  {text:"dig", emoji:"⛏️", fam:"ig"}, {text:"big", emoji:"🐘", fam:"ig"},
+  {text:"sun", emoji:"☀️", fam:"un"}, {text:"bun", emoji:"🍞", fam:"un"},
+  {text:"run", emoji:"🏃", fam:"un"}, {text:"fun", emoji:"🎉", fam:"un"},
+];
+let selected=null, correct=0, soundOn=true;
+const tray=document.getElementById('tray'), hint=document.getElementById('hint'), celebrate=document.getElementById('celebrate');
+
+function speak(t){
+  if(!soundOn) return;
+  try{ if('speechSynthesis' in window){ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=0.8; speechSynthesis.speak(u);} }catch(e){}
+}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function render(){
+  tray.innerHTML='';
+  shuffle(ITEMS.map((it,i)=>({...it,id:i}))).forEach(it=>{
+    const el=document.createElement('div');
+    el.className='item'; el.dataset.id=it.id; el.dataset.fam=it.fam; el.dataset.word=it.text;
+    el.innerHTML=`<div class="emoji">${it.emoji}</div><div class="text">${it.text}</div>`;
+    el.addEventListener('click',()=>pick(el));
+    tray.appendChild(el);
+  });
+}
+function pick(el){
+  if(el.classList.contains('done'))return;
+  document.querySelectorAll('.item.selected').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected'); selected=el;
+  speak(el.dataset.word);
+  hint.textContent='Which word does it rhyme with: cat, pig, or sun?';
+}
+function sortInto(bin){
+  if(!selected){hint.textContent='Pick a word from the top first!';return;}
+  const fam=bin.dataset.fam, el=selected, word=el.dataset.word;
+  bin.classList.add('glow'); setTimeout(()=>bin.classList.remove('glow'),300);
+  if(el.dataset.fam===fam){
+    const b=document.createElement('span'); b.textContent=word;
+    document.getElementById('items-'+fam).appendChild(b);
+    el.classList.add('done'); selected=null; correct++;
+    hint.textContent=`Yes! ${word} rhymes with ${{at:'cat',ig:'pig',un:'sun'}[fam]}.`;
+    document.getElementById('score').textContent=`✅ Correct: ${correct}`;
+    document.getElementById('remaining').textContent=`🧩 Left: ${ITEMS.length-correct}`;
+    if(correct===ITEMS.length) setTimeout(()=>celebrate.style.display='block',400);
+  } else {
+    el.classList.remove('selected'); el.classList.add('wrong'); selected=null;
+    setTimeout(()=>el.classList.remove('wrong'),400);
+    hint.textContent='Not quite. Listen to the ending sound and try again!';
+  }
+}
+document.querySelectorAll('.bin').forEach(b=>b.addEventListener('click',()=>sortInto(b)));
+document.getElementById('soundBtn').addEventListener('click',e=>{
+  soundOn=!soundOn; e.currentTarget.textContent=soundOn?'🔊 Sound: On':'🔇 Sound: Off';
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  correct=0; selected=null; celebrate.style.display='none';
+  ['at','ig','un'].forEach(f=>document.getElementById('items-'+f).innerHTML='');
+  hint.textContent='Tap a word to pick it up.';
+  document.getElementById('score').textContent='✅ Correct: 0';
+  document.getElementById('remaining').textContent=`🧩 Left: ${ITEMS.length}`;
+  render();
+});
+render();
+</script>
+</body>
+</html>

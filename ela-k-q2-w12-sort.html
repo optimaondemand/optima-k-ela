@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pumpkin Fact or Fiction</title>
+<style>
+  :root{
+    --cream:#FFF6E6; --ink:#2B2A28; --card:#FFFFFF;
+    --fact-a:#6BB8F0; --fact-b:#2B7BC4;
+    --fic-a:#C79BF2; --fic-b:#8A4BD0;
+    --bad:#E05252;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;font-family:'Trebuchet MS','Segoe UI',sans-serif;background:var(--cream);color:var(--ink);overflow-x:hidden;}
+  .wrap{max-width:940px;margin:0 auto;padding:18px 16px 32px;}
+  header{text-align:center;margin-bottom:8px;}
+  h1{font-size:clamp(1.6rem,5vw,2.4rem);margin:4px 0 2px;color:#D2540A;}
+  p.sub{margin:0;font-size:1.05rem;color:#5a5854;}
+  .scoreboard{display:flex;justify-content:center;gap:16px;margin:10px 0 16px;font-weight:bold;flex-wrap:wrap;}
+  .scoreboard span{background:var(--card);border-radius:999px;padding:6px 16px;box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .tray{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;min-height:130px;align-items:center;}
+  .item{
+    width:150px;min-height:120px;padding:10px 8px;background:var(--card);border:3px solid #eadfc8;border-radius:18px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;
+    cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 0 #eadfc8;
+    transition:transform .15s,box-shadow .15s,border-color .15s,opacity .3s;
+  }
+  .item .emoji{font-size:2.4rem;}
+  .item .text{font-size:1rem;font-weight:bold;line-height:1.2;}
+  .item:hover{transform:translateY(-2px);}
+  .item.selected{border-color:#D2540A;transform:scale(1.06);box-shadow:0 0 0 4px rgba(210,84,10,.2),0 3px 0 #D2540A;}
+  .item.wrong{animation:shake .4s;border-color:var(--bad);}
+  .item.done{opacity:0;transform:scale(.4);pointer-events:none;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .hint{text-align:center;color:#7a766d;min-height:1.5em;margin:12px 0;font-size:1.05rem;}
+  .bins{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+  .bin{
+    flex:1;min-width:240px;max-width:400px;min-height:210px;border-radius:24px;padding:16px 12px 18px;color:#fff;text-align:center;
+    cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12);display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform .12s;
+  }
+  .bin:active{transform:translateY(3px);}
+  .bin.fact{background:linear-gradient(160deg,var(--fact-a),var(--fact-b));}
+  .bin.fiction{background:linear-gradient(160deg,var(--fic-a),var(--fic-b));}
+  .bin .icon{font-size:2.4rem;}
+  .bin h2{margin:0;font-size:1.6rem;}
+  .bin .def{font-size:1rem;}
+  .bin.glow{box-shadow:0 0 0 5px rgba(255,255,255,.7),0 6px 0 rgba(0,0,0,.12);}
+  .bin-items{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:8px;}
+  .bin-items span{background:rgba(255,255,255,.28);border-radius:10px;font-size:1.5rem;padding:4px 8px;}
+  .celebrate{text-align:center;font-weight:bold;font-size:1.3rem;color:#D2540A;margin-top:16px;display:none;}
+  .controls{text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  button.btn{background:var(--ink);color:#fff;border:none;border-radius:999px;padding:10px 22px;font-size:1rem;cursor:pointer;}
+  button.btn.alt{background:#D2540A;}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){--cream:#1F1B16;--ink:#F4F0E8;--card:#2B2620;}
+    .item{border-color:#40372b;box-shadow:0 3px 0 #40372b;}
+    p.sub,.hint{color:#bdb6a8;}
+    button.btn{background:#4a4234;}
+  }
+  :root[data-theme="dark"]{--cream:#1F1B16;--ink:#F4F0E8;--card:#2B2620;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎃 Pumpkin Fact or Fiction</h1>
+    <p class="sub">Tap a card to hear it. Is it true or make-believe?</p>
+  </header>
+  <div class="scoreboard">
+    <span id="score">✅ Correct: 0</span>
+    <span id="remaining">🧩 Left: 12</span>
+  </div>
+  <div class="tray" id="tray"></div>
+  <div class="hint" id="hint">Tap a card to pick it up.</div>
+  <div class="bins">
+    <div class="bin fact" data-type="fact">
+      <div class="icon">🔎</div><h2>Fact</h2><div class="def">True! It can really happen.</div>
+      <div class="bin-items" id="items-fact"></div>
+    </div>
+    <div class="bin fiction" data-type="fiction">
+      <div class="icon">✨</div><h2>Fiction</h2><div class="def">Make-believe! It cannot really happen.</div>
+      <div class="bin-items" id="items-fiction"></div>
+    </div>
+  </div>
+  <div class="celebrate" id="celebrate">🎉 You sorted every pumpkin card! 🎉</div>
+  <div class="controls">
+    <button class="btn alt" id="soundBtn">🔊 Sound: On</button>
+    <button class="btn" id="resetBtn">🔄 Start Over</button>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  {text:"Pumpkins grow on vines.", emoji:"🌿", type:"fact"},
+  {text:"Pumpkins have seeds inside.", emoji:"🌰", type:"fact"},
+  {text:"A pumpkin starts as a seed.", emoji:"🌱", type:"fact"},
+  {text:"Farmers pick pumpkins in the fall.", emoji:"🧑‍🌾", type:"fact"},
+  {text:"Pumpkins can be big or small.", emoji:"📏", type:"fact"},
+  {text:"Pumpkins are orange when they are ripe.", emoji:"🟠", type:"fact"},
+  {text:"A pumpkin can talk to a farmer.", emoji:"🗣️", type:"fiction"},
+  {text:"A pumpkin can fly like a bird.", emoji:"🕊️", type:"fiction"},
+  {text:"A pumpkin rides a bike.", emoji:"🚲", type:"fiction"},
+  {text:"A pumpkin eats pizza.", emoji:"🍕", type:"fiction"},
+  {text:"A pumpkin sings a song.", emoji:"🎤", type:"fiction"},
+  {text:"A pumpkin wears sneakers.", emoji:"👟", type:"fiction"},
+];
+const NAMES = {fact:"a Fact", fiction:"Fiction"};
+let selected=null, correct=0, soundOn=true;
+const tray=document.getElementById('tray'), hint=document.getElementById('hint'), celebrate=document.getElementById('celebrate');
+
+function speak(t){
+  if(!soundOn) return;
+  try{ if('speechSynthesis' in window){ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=0.85; speechSynthesis.speak(u);} }catch(e){}
+}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function render(){
+  tray.innerHTML='';
+  shuffle(ITEMS.map((it,i)=>({...it,id:i}))).forEach(it=>{
+    const el=document.createElement('div');
+    el.className='item'; el.dataset.id=it.id; el.dataset.type=it.type; el.dataset.text=it.text;
+    el.innerHTML=`<div class="emoji">${it.emoji}</div><div class="text">${it.text}</div>`;
+    el.addEventListener('click',()=>pick(el));
+    tray.appendChild(el);
+  });
+}
+function pick(el){
+  if(el.classList.contains('done'))return;
+  document.querySelectorAll('.item.selected').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected'); selected=el;
+  speak(el.dataset.text);
+  hint.textContent='Can this really happen? Tap Fact or Fiction!';
+}
+function sortInto(bin){
+  if(!selected){hint.textContent='Pick a card from the top first!';return;}
+  const type=bin.dataset.type, el=selected;
+  bin.classList.add('glow'); setTimeout(()=>bin.classList.remove('glow'),300);
+  if(el.dataset.type===type){
+    const b=document.createElement('span'); b.textContent=el.querySelector('.emoji').textContent;
+    document.getElementById('items-'+type).appendChild(b);
+    el.classList.add('done'); selected=null; correct++;
+    hint.textContent=`Yes! That is ${NAMES[type]}.`;
+    speak(`Yes! That is ${NAMES[type]}.`);
+    document.getElementById('score').textContent=`✅ Correct: ${correct}`;
+    document.getElementById('remaining').textContent=`🧩 Left: ${ITEMS.length-correct}`;
+    if(correct===ITEMS.length) setTimeout(()=>celebrate.style.display='block',400);
+  } else {
+    el.classList.remove('selected'); el.classList.add('wrong'); selected=null;
+    setTimeout(()=>el.classList.remove('wrong'),400);
+    hint.textContent='Not quite. Think: can this really happen?';
+  }
+}
+document.querySelectorAll('.bin').forEach(b=>b.addEventListener('click',()=>sortInto(b)));
+document.getElementById('soundBtn').addEventListener('click',e=>{
+  soundOn=!soundOn; e.currentTarget.textContent=soundOn?'🔊 Sound: On':'🔇 Sound: Off';
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  correct=0; selected=null; celebrate.style.display='none';
+  ['fact','fiction'].forEach(t=>document.getElementById('items-'+t).innerHTML='');
+  hint.textContent='Tap a card to pick it up.';
+  document.getElementById('score').textContent='✅ Correct: 0';
+  document.getElementById('remaining').textContent=`🧩 Left: ${ITEMS.length}`;
+  render();
+});
+render();
+</script>
+</body>
+</html>
